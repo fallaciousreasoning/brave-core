@@ -109,7 +109,7 @@ public class PortfolioHelper {
     public void calculateBalances(Runnable runWhenDone) {
         resetResultData();
 
-        TokenUtils.getUserAssetsFiltered(mBraveWalletService, mChainId, (userAssets) -> {
+        TokenUtils.getUserAssetsFiltered(mBraveWalletService, mChainId, TokenUtils.TokenType.ALL, (userAssets) -> {
             mUserAssets = userAssets;
 
             AsyncUtils.MultiResponseHandler balancesMultiResponse =
