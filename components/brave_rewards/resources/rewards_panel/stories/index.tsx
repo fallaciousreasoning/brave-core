@@ -37,6 +37,7 @@ function actionLogger (name: string) {
 function createHost (): Host {
   const stateManager = createStateManager<HostState>({
     loading: false,
+    requestedView: null,
     rewardsEnabled: false,
     settings: {
       adsPerHour: 3,
@@ -252,6 +253,9 @@ function createHost (): Host {
         case 'error':
           break
       }
+    },
+    openTab (url: string) {
+      window.open(url, '_blank')
     }
   }
 }

@@ -15,6 +15,7 @@
 #include "bat/ledger/internal/ledger_impl.h"
 #include "bat/ledger/internal/legacy/media/helper.h"
 #include "bat/ledger/internal/legacy/static_values.h"
+#include "bat/ledger/internal/publisher/publisher_registry.h"
 #include "bat/ledger/internal/publisher/publisher_status_helper.h"
 #include "bat/ledger/internal/sku/sku_factory.h"
 #include "bat/ledger/internal/sku/sku_merchant.h"
@@ -596,6 +597,17 @@ void LedgerImpl::UpdateMediaDuration(uint64_t window_id,
   WhenReady([this, window_id, publisher_key, duration, first_visit]() {
     publisher()->UpdateMediaDuration(window_id, publisher_key, duration,
                                      first_visit);
+  });
+}
+
+void LedgerImpl::IsPublisherRegistered(
+    const std::string& publisher_id,
+    base::OnceCallback<void(bool)> callback) {
+  WhenReady([this, publisher_id, callback = std::move(callback)]() mutable {
+    context()
+        .Get<PublisherRegistry>()
+        .IsPublisherRegistered(publisher_id)
+        .Then(std::move(callback));
   });
 }
 

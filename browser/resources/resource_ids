@@ -46,12 +46,13 @@
   "<(ROOT_GEN_DIR)/brave/web-ui-brave_webtorrent/brave_webtorrent.grd": {
     "includes": [48800],
   },
-  "brave/components/brave_rewards/resources/extension/extension_static_resources.grd": {
-    "includes": [49300]
+  # This file is generated during the build.
+  "<(ROOT_GEN_DIR)/brave/web-ui-brave_rewards_extension_panel/brave_rewards_extension_panel.grd": {
+    "includes": [49500],
   },
   # This file is generated during the build.
   "<(ROOT_GEN_DIR)/brave/web-ui-brave_rewards_panel/brave_rewards_panel.grd": {
-    "includes": [49500],
+    "includes": [49600],
   },
   "brave/components/brave_rewards/resources/brave_rewards_static_resources.grd": {
     "includes": [49700]

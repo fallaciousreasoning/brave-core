@@ -6,14 +6,12 @@
 #ifndef BRAVE_BROWSER_BRAVE_ADS_BRAVE_ADS_HOST_H_
 #define BRAVE_BROWSER_BRAVE_ADS_BRAVE_ADS_HOST_H_
 
-#include <string>
 #include <vector>
 
 #include "base/memory/raw_ptr.h"
 #include "base/scoped_observation.h"
+#include "brave/browser/brave_rewards/rewards_panel_service.h"
 #include "brave/components/brave_ads/common/brave_ads_host.mojom.h"
-#include "brave/components/brave_rewards/browser/rewards_service.h"
-#include "brave/components/brave_rewards/browser/rewards_service_observer.h"
 
 class Profile;
 
@@ -22,7 +20,7 @@ namespace brave_ads {
 // The class handles chrome.braveRequestAdsEnabled() js api call for Desktop
 // platforms. The js api asks the user for permission to enable ads.
 class BraveAdsHost : public brave_ads::mojom::BraveAdsHost,
-                     public brave_rewards::RewardsServiceObserver {
+                     public brave_rewards::RewardsPanelService::Observer {
  public:
   explicit BraveAdsHost(Profile* profile);
   BraveAdsHost(const BraveAdsHost&) = delete;
@@ -32,20 +30,15 @@ class BraveAdsHost : public brave_ads::mojom::BraveAdsHost,
   // brave_ads::mojom::BraveAdsHost
   void RequestAdsEnabled(RequestAdsEnabledCallback callback) override;
 
-  // brave_rewards::RewardsServiceObserver
-  void OnRequestAdsEnabledPopupClosed(bool ads_enabled) override;
-  void OnAdsEnabled(brave_rewards::RewardsService* rewards_service,
-                    bool ads_enabled) override;
+  // brave_rewards::RewardsPanelService::Observer
+  void OnRewardsPanelClosed(Browser* browser) override;
 
  private:
-  bool ShowRewardsPopup(brave_rewards::RewardsService* rewards_service);
   void RunCallbacksAndReset(bool result);
 
   raw_ptr<Profile> profile_ = nullptr;
   std::vector<RequestAdsEnabledCallback> callbacks_;
-  base::ScopedObservation<brave_rewards::RewardsService,
-                          brave_rewards::RewardsServiceObserver>
-      rewards_service_observation_{this};
+  brave_rewards::RewardsPanelService::Observation panel_observation_{this};
 };
 
 }  // namespace brave_ads

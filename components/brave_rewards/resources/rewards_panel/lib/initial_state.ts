@@ -7,6 +7,7 @@ import { HostState } from './interfaces'
 export function getInitialState (): HostState {
   return {
     loading: true,
+    requestedView: null,
     rewardsEnabled: false,
     balance: 0,
     settings: {

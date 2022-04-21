@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+
+import { addWebUIListener } from 'chrome://resources/js/cr.m'
+
 import { Host, GrantCaptchaStatus } from './interfaces'
 import { GrantInfo } from '../../shared/lib/grant_info'
 
@@ -20,7 +23,7 @@ import * as apiAdapter from './extension_api_adapter'
 type LocalStorageKey = 'catcha-grant-id' | 'load-adaptive-captcha'
 
 function closePanel () {
-  window.close()
+  chrome.send('hideUI')
 }
 
 function openTab (url: string) {
@@ -54,6 +57,10 @@ export function createHost (): Host {
   const stateManager = createStateManager(getInitialState())
   const storage = createLocalStorageScope<LocalStorageKey>('rewards-panel')
   const grants = new Map<string, GrantInfo>()
+
+  function getString (key: string) {
+    return String(self['loadTimeData'].getString(key) || '')
+  }
 
   async function updatePublisherInfo () {
     const tabInfo = await getCurrentTabInfo()
@@ -165,34 +172,45 @@ export function createHost (): Host {
     }).then(openTab, console.error)
   }
 
-  function handleStartupParameters () {
-    const { hash } = location
-
-    const adaptiveCaptchaMatch = hash.match(/^#?load_adaptive_captcha$/i)
-    if (adaptiveCaptchaMatch) {
-      location.hash = ''
-      loadAdaptiveCaptcha()
-      return
-    }
-
+  function loadPersistedState () {
     const shouldLoadAdaptiveCaptcha = storage.readJSON('load-adaptive-captcha')
-    if (shouldLoadAdaptiveCaptcha && typeof shouldLoadAdaptiveCaptcha === 'boolean') {
-      location.hash = ''
+    if (shouldLoadAdaptiveCaptcha) {
       loadAdaptiveCaptcha()
       return
     }
 
-    const grantMatch = hash.match(/^#?grant_([\s\S]+)$/i)
-    if (grantMatch) {
-      location.hash = ''
-      loadGrantCaptcha(grantMatch[1], 'pending')
+    const storedGrantId = storage.readJSON('catcha-grant-id')
+    if (storedGrantId && typeof storedGrantId === 'string') {
+      loadGrantCaptcha(storedGrantId, 'pending')
+      return
+    }
+  }
+
+  function handleRewardsPanelArgs (args: string) {
+    // TODO(zenparsing): Consider making these keys into an enumerated type.
+    const params = new URLSearchParams(args)
+
+    stateManager.update({ requestedView: null })
+
+    const grantId = params.get('claim-grant')
+    if (grantId) {
+      loadGrantCaptcha(grantId, 'pending')
       return
     }
 
-    const grantId = storage.readJSON('catcha-grant-id')
-    if (grantId && typeof grantId === 'string') {
-      location.hash = ''
-      loadGrantCaptcha(grantId, 'pending')
+    if (params.has('adaptive-captcha')) {
+      loadAdaptiveCaptcha()
+      return
+    }
+
+    if (params.has('rewards-tour')) {
+      stateManager.update({ requestedView: 'rewards-tour'})
+      return
+    }
+
+    if (params.has('brave-talk-opt-in')) {
+      stateManager.update({ requestedView: 'brave-talk-opt-in'})
+      return
     }
   }
 
@@ -233,29 +251,57 @@ export function createHost (): Host {
     }).catch(console.error)
   }
 
-  async function requestPublisherInfo () {
-    const tabInfo = await getCurrentTabInfo()
-    if (tabInfo) {
-      await apiAdapter.fetchPublisherInfo(tabInfo.id)
-    }
+  function updateStateForTab () {
+    stateManager.update({
+      loading: true,
+      publisherInfo: null
+    })
+
+    updatePublisherInfo().catch(console.error).then(() => {
+      stateManager.update({ loading: false })
+    })
   }
 
   function addListeners () {
-    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-      if (tab.active && changeInfo.status === 'complete') {
-        requestPublisherInfo().catch(console.error)
+    addWebUIListener('error', (type: any) => {
+      console.error(new Error(`WebUI error "${type}"`))
+    })
+
+    addWebUIListener('rewardsPanelRequested', (args: any) => {
+      handleRewardsPanelArgs(String(args || ''))
+      if (stateManager.getState().publisherInfo) {
+        // TODO(zenparsing): Add notes on why this is here. In general though,
+        // we kinda need to refetch everything...
+        updatePublisherInfo().catch(console.error)
       }
     })
 
-    apiAdapter.onPublisherDataUpdated(() => {
-      updatePublisherInfo().catch(console.error)
+    // When the active tab has finished loading, or when the active tab for this
+    // window has changed, reload publisher information.
+    chrome.tabs.onActivated.addListener(updateStateForTab)
+
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+      if (tab.active && changeInfo.status === 'complete') {
+        updateStateForTab();
+      }
     })
 
-    // Update user settings after rewards has been enabled.
+    // Update user settings and other data after rewards has been enabled.
     apiAdapter.onRewardsEnabled(() => {
       apiAdapter.getSettings().then((settings) => {
         stateManager.update({ settings })
       }).catch(console.error)
+
+      // After enabling rewards, we may have be able to display additional data
+      // about the current publisher.
+      updatePublisherInfo().catch(console.error)
+
+      // If we are displaying the Brave Talk "requestAdsEnabled" UI, then
+      // automatically close the panel after a delay when the user has enabled
+      // Rewards.
+      if (stateManager.getState().requestedView === 'brave-talk-opt-in') {
+        setTimeout(() => { closePanel() }, 3000)
+      }
     })
 
     apiAdapter.onGrantsUpdated(updateGrants)
@@ -282,6 +328,10 @@ export function createHost (): Host {
     })
 
     addListeners()
+
+    await new Promise<void>((resolve) => {
+      addWebUIListener('rewardsStarted', resolve)
+    })
 
     await Promise.all([
       apiAdapter.getGrants().then((list) => {
@@ -318,10 +368,8 @@ export function createHost (): Host {
     ])
 
     updateNotifications()
-
-    requestPublisherInfo().catch(console.error)
-
-    handleStartupParameters()
+    loadPersistedState()
+    handleRewardsPanelArgs(getString('rewardsPanelArgs'))
 
     stateManager.update({ loading: false })
   }
@@ -334,14 +382,7 @@ export function createHost (): Host {
 
     addListener: stateManager.addListener,
 
-    getString (key) {
-      // In order to normalize messages across extensions and WebUI, replace all
-      // chrome.i18n message placeholders with $N marker patterns. UI components
-      // are responsible for replacing these markers with appropriate text or
-      // using the markers to build HTML.
-      return chrome.i18n.getMessage(key,
-        ['$1', '$2', '$3', '$4', '$5', '$6', '$7', '$8', '$9'])
-    },
+    getString,
 
     enableRewards () {
       chrome.braveRewards.enableRewards()
@@ -361,7 +402,7 @@ export function createHost (): Host {
       stateManager.update({ publisherRefreshing: true })
 
       chrome.braveRewards.refreshPublisher(publisherInfo.id, () => {
-        requestPublisherInfo().then(() => {
+        updatePublisherInfo().then(() => {
           stateManager.update({ publisherRefreshing: false })
         }).catch(console.error)
       })
@@ -544,6 +585,8 @@ export function createHost (): Host {
           loadAdaptiveCaptcha()
           break
       }
-    }
+    },
+
+    openTab
   }
 }

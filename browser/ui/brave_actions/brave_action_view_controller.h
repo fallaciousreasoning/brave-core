@@ -39,7 +39,6 @@ class BraveActionViewController : public ExtensionActionViewController {
       Browser* browser,
       ExtensionsContainer* extensions_container);
 
-  bool IsEnabled(content::WebContents* web_contents) const override;
   gfx::Image GetIcon(content::WebContents* web_contents,
                      const gfx::Size& size) override;
   ui::MenuModel* GetContextMenu(
