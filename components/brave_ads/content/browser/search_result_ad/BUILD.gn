@@ -1,3 +1,8 @@
+# Copyright (c) 2022 The Brave Authors. All rights reserved.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at http://mozilla.org/MPL/2.0/.
+
 source_set("search_result_ad") {
   sources = [
     "search_result_ad_service.cc",
@@ -9,6 +14,7 @@ source_set("search_result_ad") {
     "//brave/components/brave_ads/browser",
     "//brave/components/brave_ads/common",
     "//brave/components/brave_search/common",
+    "//components/sessions",
     "//content/public/browser",
     "//mojo/public/cpp/bindings",
     "//services/service_manager/public/cpp",

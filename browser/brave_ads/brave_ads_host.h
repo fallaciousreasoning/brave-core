@@ -17,6 +17,10 @@
 
 class Profile;
 
+namespace content {
+class WebContents;
+}
+
 namespace brave_ads {
 
 // The class handles chrome.braveRequestAdsEnabled() js api call for Desktop
@@ -24,12 +28,15 @@ namespace brave_ads {
 class BraveAdsHost : public brave_ads::mojom::BraveAdsHost,
                      public brave_rewards::RewardsServiceObserver {
  public:
-  explicit BraveAdsHost(Profile* profile);
+  BraveAdsHost(Profile* profile, content::WebContents* web_contents);
   BraveAdsHost(const BraveAdsHost&) = delete;
   BraveAdsHost& operator=(const BraveAdsHost&) = delete;
   ~BraveAdsHost() override;
 
   // brave_ads::mojom::BraveAdsHost
+  void MaybeTriggerAdViewedEvent(
+      const std::string& creative_instance_id,
+      MaybeTriggerAdViewedEventCallback callback) override;
   void RequestAdsEnabled(RequestAdsEnabledCallback callback) override;
 
   // brave_rewards::RewardsServiceObserver
@@ -42,6 +49,7 @@ class BraveAdsHost : public brave_ads::mojom::BraveAdsHost,
   void RunCallbacksAndReset(bool result);
 
   raw_ptr<Profile> profile_ = nullptr;
+  raw_ptr<content::WebContents> web_contents_ = nullptr;
   std::vector<RequestAdsEnabledCallback> callbacks_;
   base::ScopedObservation<brave_rewards::RewardsService,
                           brave_rewards::RewardsServiceObserver>
