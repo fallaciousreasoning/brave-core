@@ -38,28 +38,6 @@
 #include "ui/gfx/paint_vector_icon.h"
 #include "ui/gfx/scoped_canvas.h"
 
-// static
-std::unique_ptr<BraveActionViewController> BraveActionViewController::Create(
-    const extensions::ExtensionId& extension_id,
-    Browser* browser,
-    ExtensionsContainer* extensions_container) {
-  DCHECK(browser);
-
-  auto* registry = extensions::ExtensionRegistry::Get(browser->profile());
-  scoped_refptr<const extensions::Extension> extension =
-      registry->enabled_extensions().GetByID(extension_id);
-  DCHECK(extension);
-  extensions::ExtensionAction* extension_action =
-      extensions::ExtensionActionManager::Get(browser->profile())
-          ->GetExtensionAction(*extension);
-  DCHECK(extension_action);
-
-  // WrapUnique() because the constructor is private.
-  return base::WrapUnique(new BraveActionViewController(
-      std::move(extension), browser, extension_action, registry,
-      extensions_container));
-}
-
 BraveActionViewController::BraveActionViewController(
     scoped_refptr<const extensions::Extension> extension,
     Browser* browser,
