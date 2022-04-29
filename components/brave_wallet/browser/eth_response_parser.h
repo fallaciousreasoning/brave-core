@@ -49,6 +49,8 @@ bool ParseERC721TokenUri(const std::string& json, GURL* url);
 // Get the JSON included in a data URI with a mime type application/json
 bool ParseDataURIAndExtractJSON(const GURL url, std::string* json);
 
+bool ParseTokenUri(const std::string& json, GURL* url);
+
 }  // namespace eth
 
 }  // namespace brave_wallet
