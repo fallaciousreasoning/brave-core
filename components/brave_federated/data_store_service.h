@@ -32,7 +32,7 @@ namespace brave_federated {
 
 class AsyncDataStore {
  private:
-  base::SequenceBound<DataStore> data_store_;
+  const base::SequenceBound<DataStore> data_store_;
 
  public:
   explicit AsyncDataStore(base::FilePath db_path);
@@ -51,7 +51,6 @@ class AsyncDataStore {
                            base::OnceCallback<void(bool)> callback);
   void LoadTrainingData(base::OnceCallback<void(DataStore::TrainingData)> callback);
   void EnforceRetentionPolicy();
-  void IsAlive();
 };
 
 // DataStoreService is the shared interface between all adopters applications
@@ -73,7 +72,8 @@ class DataStoreService {
   void OnInitComplete(bool success);
 
   base::FilePath db_path_;
-  base::flat_map<std::string, AsyncDataStore> data_stores_;
+  // base::flat_map<std::string, AsyncDataStore*> data_stores_;
+  AsyncDataStore ad_timing_data_store_;
   base::WeakPtrFactory<DataStoreService> weak_factory_;
 };
 

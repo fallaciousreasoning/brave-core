@@ -35,33 +35,36 @@ function onDataStoreChanged() {
 
     if (selectedDataStore == 'ad-timing') {
       $('service-message').textContent = ''
-      const thead = $('ad-timing-headers');
+      const thead = $('data-store-headers');
       while (thead.firstChild) {
         thead.removeChild(thead.firstChild);
       }
 
       console.log(logs[0]);
-      Object.keys(logs[0]).forEach(function(title) {
+      Object.keys(logs[0].covariates[0]).forEach(function(title) {
           const th = document.createElement('th');
           th.textContent = title;
-          th.className = 'ad-timing-log-'+ title;
+          th.className = 'data-store-feature-'+ title;
       
-          const thead = $('ad-timing-headers');
+          const thead = $('data-store-headers');
           thead.appendChild(th);
       });
-    
-      logs.forEach(function(log) {
-        const tr = document.createElement('tr');
-        appendTD(tr, log.logId, 'ad-timing-log-id');
-        appendTD(tr, formatDate(new Date(log.logTime)), 'ad-timing-log-time');
-        appendTD(tr, log.logLocale, 'ad-timing-log-locale');
-        appendTD(tr, log.logNumberOfTabs, 'ad-timing-log-number_of_tabs');
-        appendBooleanTD(tr, log.logLabel, 'ad-timing-log-label');
-    
-        const tabpanel = $('ad-timing-tab');
-        const tbody = tabpanel.getElementsByTagName('tbody')[0];
-        tbody.appendChild(tr);
-      });
+
+      for (const [training_instance_id, training_instance] of Object.entries(logs)) {
+        console.log(training_instance_id, training_instance);
+
+        training_instance.covariates.forEach(function(covariate) {
+          const tr = document.createElement('tr');
+          appendTD(tr, covariate.trainingInstanceId, 'data-store-feature-trainingInstanceId');
+          appendTD(tr, covariate.featureName, 'data-store-feature-featureName');
+          appendTD(tr, covariate.dataType, 'data-store-feature-dataType');
+          appendTD(tr, covariate.value, 'data-store-feature-value');
+      
+          const tabpanel = $('data-store-tab');
+          const tbody = tabpanel.getElementsByTagName('tbody')[0];
+          tbody.appendChild(tr);
+        });
+      }
     }
 }
 
@@ -69,6 +72,7 @@ function onDataStoreChanged() {
 
 function appendTD(parent, content, className) {
   const td = document.createElement('td');
+  console.log(content, typeof(content));
   td.textContent = typeof(content) === 'number' ? content.toString() : content;
   td.className = className;
   parent.appendChild(td);

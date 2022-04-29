@@ -17,8 +17,6 @@
 #include "brave/components/brave_federated/public/interfaces/brave_federated.mojom.h"
 #include "chrome/browser/profiles/profile.h"
 
-#include <iostream>
-
 FederatedInternalsPageHandler::FederatedInternalsPageHandler(
     mojo::PendingReceiver<federated_internals::mojom::PageHandler> receiver,
     mojo::PendingRemote<federated_internals::mojom::Page> page,
@@ -38,8 +36,6 @@ void FederatedInternalsPageHandler::GetDataStoreInfo() {
   auto* const ad_notification_data_store =
       data_store_service_->GetDataStore(kAdNotificationTaskName);
 
-  std::cerr << "**: " << ad_notification_data_store << std::endl;
-
   ad_notification_data_store->LoadTrainingData(
       base::BindOnce(&FederatedInternalsPageHandler::OnDataStoreInfoAvailable,
                      weak_ptr_factory_.GetWeakPtr()));
@@ -47,14 +43,15 @@ void FederatedInternalsPageHandler::GetDataStoreInfo() {
 
 void FederatedInternalsPageHandler::OnDataStoreInfoAvailable(
     brave_federated::DataStore::TrainingData training_data) {
-  std::cerr << "**: Callback called." << std::endl;
   std::vector<federated_internals::mojom::TrainingInstancePtr> training_instances;
   for (auto const& object : training_data) {
     auto training_instance = federated_internals::mojom::TrainingInstance::New();
     for (auto const& cov : object.second) {
       auto covariate = federated_internals::mojom::Covariate::New();
+      covariate->training_instance_id = object.first;
+      covariate->feature_name = static_cast<int>(cov.covariate_type);
+      covariate->data_type = static_cast<int>(cov.data_type);
       covariate->value = cov.value;
-      covariate->feature_name = "feature";
       training_instance->covariates.push_back(std::move(covariate));
     }
 

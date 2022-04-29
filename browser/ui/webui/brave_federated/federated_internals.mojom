@@ -6,7 +6,9 @@
 module federated_internals.mojom;
 
 struct Covariate {
-  string feature_name;
+  int32 training_instance_id;
+  int32 feature_name;
+  int32 data_type;
   string value;
 };
 

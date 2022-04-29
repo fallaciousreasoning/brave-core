@@ -41,7 +41,7 @@ class DataStore {
   TrainingData LoadTrainingData();
   void EnforceRetentionPolicy();
 
-  void IsAlive();
+  void AddTrainingInstancesForTesting();
 
  protected:
   friend class DataStoreTest;

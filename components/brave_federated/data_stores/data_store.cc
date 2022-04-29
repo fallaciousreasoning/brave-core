@@ -99,8 +99,8 @@ bool DataStore::AddTrainingInstance(mojom::TrainingInstancePtr training_instance
   for (const auto& covariate : training_instance->covariates) {
     sql::Statement s(db_.GetUniqueStatement(
       base::StringPrintf(
-          "INSERT INTO %s (id, training_instance_id, feature_name, feature_type, feature_value, created_at) "
-          "VALUES (?,?,?,?,?,?)",
+          "INSERT INTO %s (training_instance_id, feature_name, feature_type, feature_value, created_at) "
+          "VALUES (?,?,?,?,?)",
           task_name_.c_str())
           .c_str()));
     
@@ -112,18 +112,16 @@ bool DataStore::AddTrainingInstance(mojom::TrainingInstancePtr training_instance
 }
 
 DataStore::TrainingData DataStore::LoadTrainingData() {
-  std::cerr << "**: REACHED." << std::endl;   
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
+  AddTrainingInstancesForTesting();
   
-  std::cerr << "**: About to query." << std::endl; 
   DataStore::TrainingData training_instances;
   sql::Statement s(db_.GetUniqueStatement(
-      base::StringPrintf("SELECT id, training_instance_id, feature_name, feature_type, value, "
+      base::StringPrintf("SELECT id, training_instance_id, feature_name, feature_type, feature_value, "
                          "created_at FROM %s",
                          task_name_.c_str())
           .c_str()));
 
-  std::cerr << "**: About to load training instances." << std::endl;   
   training_instances.clear();
   while (s.Step()) { 
     int training_instance_id = s.ColumnInt(1);
@@ -187,8 +185,16 @@ bool DataStore::EnsureTable() {
          transaction.Commit();
 }
 
-void DataStore::IsAlive() {
-  std::cerr << "**: It's alive." << std::endl;
+void DataStore::AddTrainingInstancesForTesting() {
+  mojom::TrainingInstancePtr training_instance = mojom::TrainingInstance::New();
+  mojom::CovariatePtr covariate = mojom::Covariate::New();
+  covariate->covariate_type = (mojom::CovariateType)  3;
+  covariate->data_type = (mojom::DataType)  4;
+  covariate->value = "42.0";
+
+  training_instance->covariates.push_back(std::move(covariate));
+
+  AddTrainingInstance(std::move(training_instance));
 }
 
 }  // namespace brave_federated

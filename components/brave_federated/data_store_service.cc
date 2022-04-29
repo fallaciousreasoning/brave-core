@@ -32,7 +32,6 @@ void AsyncDataStore::Init(int task_id,
           int max_number_of_records,
           int max_retention_days,
           base::OnceCallback<void(bool)> callback) {
-  std::cerr << "**: Initiliazing..." << std::endl;        
   data_store_.AsyncCall(&DataStore::Init)
       .WithArgs(task_id, task_name, max_number_of_records, max_retention_days)
       .Then(std::move(callback));
@@ -45,20 +44,10 @@ void AsyncDataStore::AddTrainingInstance(
 }
 
 void AsyncDataStore::LoadTrainingData(base::OnceCallback<void(DataStore::TrainingData)> callback) {
-  std::cerr << "**: Async Load Training called." << std::endl;
-  std::cerr << "**: on SB data_store " << &data_store_ << std::endl;
   data_store_.AsyncCall(&DataStore::LoadTrainingData).Then(std::move(callback));
 }
 
-void AsyncDataStore::IsAlive() {
-  std::cerr << "**: calling isAlive " << &data_store_ << std::endl;
-  data_store_.AsyncCall(&DataStore::IsAlive);
-  std::cerr << "**: isAlive called succesfully " << &data_store_ << std::endl;
-}
-
 void AsyncDataStore::EnforceRetentionPolicy() {
-  std::cerr << "**: Async Enforce Retention called." << std::endl;
-  std::cerr << "**: on SB data_store " << &data_store_ << std::endl;
   data_store_.AsyncCall(&DataStore::EnforceRetentionPolicy);
 }
 
@@ -66,6 +55,7 @@ void AsyncDataStore::EnforceRetentionPolicy() {
 
 DataStoreService::DataStoreService(const base::FilePath& database_path)
     : db_path_(database_path),
+      ad_timing_data_store_(database_path),
       weak_factory_(this) {}
 
 DataStoreService::~DataStoreService() {
@@ -73,30 +63,32 @@ DataStoreService::~DataStoreService() {
 }
 
 void DataStoreService::OnInitComplete(bool success) {
-  std::cerr << "**: Initializing has succeded: " << success << std::endl;
   if (success) {
     EnforceRetentionPolicies();
   }
 }
 
 void DataStoreService::Init() {
-  data_stores_.clear();
+  // data_stores_.clear();
 
   auto callback = base::BindOnce(&DataStoreService::OnInitComplete,
                                  weak_factory_.GetWeakPtr());
-  AsyncDataStore ad_notification_timing_data_store(db_path_);
-  ad_notification_timing_data_store.Init(
+  ad_timing_data_store_.Init(
       kAdNotificationTaskId, kAdNotificationTaskName, kMaxNumberOfRecords,
       kMaxRetentionDays, std::move(callback));
     
-  data_stores_ = data_stores_.emplace(kAdNotificationTaskName, std::move(ad_notification_timing_data_store));
+  // data_stores_.emplace(kAdNotificationTaskName, &ad_notification_timing_data_store);
 }
 
-AsyncDataStore* DataStoreService::GetDataStore(const std::string& name) {
-  if (data_stores_.find(name) == data_stores_.end())
-    return nullptr;
+// AsyncDataStore* DataStoreService::GetDataStore(const std::string& name) {
+//   if (data_stores_.find(name) == data_stores_.end())
+//     return nullptr;
 
-  return &data_stores_[name];
+//   return data_stores_[name];
+// }
+
+AsyncDataStore* DataStoreService::GetDataStore(const std::string& name) {
+  return &ad_timing_data_store_;
 }
 
 void DataStoreService::EnforceRetentionPolicies() {
