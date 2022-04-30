@@ -352,6 +352,7 @@ test("brave_unit_tests") {
       "//brave/components/brave_wallet/browser:pref_names",
       "//brave/components/brave_wallet/browser:utils",
       "//components/favicon/content",
+      "//brave/components/ipfs",
     ]
   }
 
